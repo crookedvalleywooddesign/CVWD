@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CVWD — Shop Flow</title>
+<style>
+:root {
+  --bg: #f2f1ee;
+  --surface: #ffffff;
+  --border: #e2e0db;
+  --text: #1a1917;
+  --text-muted: #6b6863;
+  --nav-bg: #1c1917;
+  --nav-text: #e7e5e4;
+  --accent: #f59e0b;
+  --green: #16a34a;
+  --green-bg: #f0fdf4;
+  --yellow: #b45309;
+  --yellow-bg: #fffbeb;
+  --red: #dc2626;
+  --red-bg: #fef2f2;
+  --gray: #71717a;
+  --gray-bg: #f4f4f5;
+  --blue: #2563eb;
+  --blue-bg: #eff6ff;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.09), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.05);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; min-height: 100vh; }
+
+/* NAV */
+.nav { background: var(--nav-bg); color: var(--nav-text); display: flex; align-items: center; padding: 0 20px; height: 52px; position: sticky; top: 0; z-index: 100; gap: 2px; }
+.nav-brand { font-weight: 800; font-size: 15px; color: var(--accent); letter-spacing: 0.08em; margin-right: 20px; white-space: nowrap; flex-shrink: 0; }
+.nav-link { padding: 6px 13px; border-radius: 6px; cursor: pointer; color: var(--nav-text); font-size: 13px; font-weight: 500; transition: background 0.15s; white-space: nowrap; border: none; background: none; }
+.nav-link:hover { background: rgba(255,255,255,0.1); }
+.nav-link.active { background: rgba(245,158,11,0.18); color: var(--accent); font-weight: 700; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sync-ok { background: var(--green); }
+.sync-saving { background: var(--accent); }
+.sync-error { background: var(--red); }
+.sync-label { font-size: 11px; color: rgba(255,255,255,0.4); }
+.nav-settings { background: none; border: none; color: rgba(255,255,255,0.4); cursor: pointer; font-size: 16px; padding: 4px 6px; border-radius: 4px; line-height: 1; }
+.nav-settings:hover { color: white; background: rgba(255,255,255,0.1); }
+
+/* LAYOUT */
+.main { padding: 24px; max-width: 1700px; margin: 0 auto; }
+.view { display: none; }
+.view.active { display: block; }
+
+/* PAGE HEADER */
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; gap: 16px; flex-wrap: wrap; }
+.page-title { font-size: 21px; font-weight: 700; }
+.page-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 15px; border-radius: var(--radius); border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: opacity 0.15s, transform 0.1s; line-height: 1; }
+.btn:hover { opacity: 0.88; }
+.btn:active { transform: scale(0.98); }
+.btn-primary { background: var(--nav-bg); color: white; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-danger { background: var(--red); color: white; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+
+/* STATS */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.stat-card { background: var(--surface); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); border-left: 4px solid var(--border); }
+.stat-card.green { border-color: var(--green); }
+.stat-card.yellow { border-color: var(--accent); }
+.stat-card.red { border-color: var(--red); }
+.stat-card.blue { border-color: var(--blue); }
+.stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); }
+.stat-value { font-size: 26px; font-weight: 800; margin-top: 3px; }
+.stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+/* TABLE */
+.table-wrap { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow); overflow: auto; }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 9px 13px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); border-bottom: 1px solid var(--border); white-space: nowrap; background: #fafaf9; }
+td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fafaf9; }
+
+/* BADGES */
+.badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-gray { background: var(--gray-bg); color: var(--gray); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
+
+/* DOT */
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: var(--green); }
+.dot-yellow { background: var(--accent); }
+.dot-red { background: var(--red); }
+.dot-gray { background: var(--gray); }
+
+/* KANBAN */
+.board { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 16px; align-items: flex-start; }
+.board-col { flex: 0 0 252px; background: #eae9e5; border-radius: var(--radius); padding: 11px; min-height: 180px; transition: background 0.15s; }
+.board-col.drag-over { background: #dbd9d3; outline: 2px dashed var(--accent); }
+.col-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.col-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); }
+.col-count { background: rgba(0,0,0,0.12); border-radius: 99px; padding: 1px 7px; font-size: 11px; font-weight: 700; color: var(--text-muted); }
+
+/* PACKAGE CARD */
+.pkg-card { background: var(--surface); border-radius: 6px; padding: 9px 11px; margin-bottom: 7px; box-shadow: var(--shadow); cursor: grab; border-left: 4px solid var(--border); transition: box-shadow 0.12s, transform 0.1s; }
+.pkg-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+.pkg-card.dragging { opacity: 0.45; transform: rotate(1deg); }
+.pkg-card.status-green { border-color: var(--green); }
+.pkg-card.status-yellow { border-color: var(--accent); }
+.pkg-card.status-red { border-color: var(--red); }
+.pkg-card.status-gray { border-color: var(--gray); }
+.pkg-name { font-weight: 700; font-size: 12px; line-height: 1.3; }
+.pkg-project { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+.pkg-meta { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; align-items: center; }
+.pkg-op { font-size: 10px; background: var(--gray-bg); color: #52525b; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+.pkg-date { font-size: 10px; color: var(--text-muted); }
+.pkg-weeks { font-size: 10px; color: var(--text-muted); background: var(--border); padding: 1px 5px; border-radius: 3px; }
+.pkg-blocked { font-size: 10px; color: var(--red); font-weight: 700; margin-top: 5px; display: flex; align-items: center; gap: 3px; }
+.pkg-actions { display: flex; gap: 5px; margin-top: 7px; }
+.pkg-priority { font-size: 10px; background: var(--nav-bg); color: white; padding: 1px 6px; border-radius: 3px; font-weight: 800; }
+
+/* CAPACITY */
+.capacity-grid { display: flex; flex-direction: column; gap: 3px; }
+.week-row { background: var(--surface); border-radius: 6px; padding: 9px 14px; box-shadow: var(--shadow); display: grid; grid-template-columns: 90px 90px 1fr 180px; align-items: center; gap: 12px; cursor: pointer; transition: box-shadow 0.1s; border-left: 3px solid transparent; }
+.week-row:hover { box-shadow: var(--shadow-md); }
+.week-row.status-green { border-color: var(--green); }
+.week-row.status-yellow { border-color: var(--accent); }
+.week-row.status-red { border-color: var(--red); }
+.week-row.current-week { background: #fffef5; }
+.week-label { font-size: 12px; font-weight: 700; }
+.week-load { font-size: 12px; font-weight: 700; }
+.week-bar-wrap { height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.week-bar { height: 100%; border-radius: 99px; transition: width 0.25s; }
+.week-bar.green { background: var(--green); }
+.week-bar.yellow { background: var(--accent); }
+.week-bar.red { background: var(--red); }
+.week-packages { display: flex; gap: 4px; flex-wrap: wrap; }
+.week-pkg-chip { font-size: 10px; padding: 2px 6px; background: var(--blue-bg); color: var(--blue); border-radius: 3px; font-weight: 600; white-space: nowrap; max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+
+/* BLOCKER STATS */
+.blocker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; margin-bottom: 22px; }
+.blocker-stat { background: var(--surface); border-radius: var(--radius); padding: 14px 18px; box-shadow: var(--shadow); }
+.blocker-stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.blocker-stat-value { font-size: 22px; font-weight: 800; margin-top: 4px; }
+.blocker-stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.top-blocker-list { display: flex; flex-direction: column; gap: 5px; }
+.top-blocker-item { display: flex; align-items: center; gap: 8px; }
+.top-blocker-bar { flex: 1; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.top-blocker-fill { height: 100%; background: var(--red); border-radius: 99px; }
+.top-blocker-name { font-size: 12px; font-weight: 600; min-width: 190px; }
+.top-blocker-count { font-size: 12px; color: var(--text-muted); min-width: 28px; text-align: right; font-weight: 700; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: 12px; padding: 26px 28px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.25); }
+.modal-title { font-size: 17px; font-weight: 800; margin-bottom: 18px; }
+.form-group { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+input, select, textarea { width: 100%; padding: 7px 11px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; font-family: inherit; background: var(--surface); color: var(--text); transition: border-color 0.15s; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(37,99,235,0.12); }
+textarea { resize: vertical; min-height: 65px; }
+.modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--border); align-items: center; }
+
+/* SECTION HEADER */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 11px; margin-top: 26px; }
+.section-title { font-size: 14px; font-weight: 700; }
+
+/* LEGEND */
+.legend { display: flex; gap: 16px; align-items: center; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 5px; }
+
+/* DASHBOARD CARDS */
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; margin-top: 22px; }
+.dash-card { background: var(--surface); border-radius: var(--radius); padding: 18px 20px; box-shadow: var(--shadow); }
+.dash-card-title { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-muted); margin-bottom: 12px; }
+.dash-item { display: flex; align-items: center; gap: 9px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.dash-item:last-child { border-bottom: none; }
+.dash-item-name { flex: 1; font-size: 12px; font-weight: 700; }
+.dash-item-sub { font-size: 11px; color: var(--text-muted); font-weight: 400; }
+
+/* ALERTS */
+.alert { padding: 10px 15px; border-radius: var(--radius); font-size: 13px; font-weight: 600; margin-bottom: 14px; }
+.alert-red { background: var(--red-bg); color: var(--red); border: 1px solid #fca5a5; }
+.alert-yellow { background: var(--yellow-bg); color: var(--yellow); border: 1px solid #fcd34d; }
+
+/* MISC */
+.notes-text { font-size: 11px; color: var(--text-muted); font-style: italic; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: inline-block; }
+.empty { text-align: center; padding: 36px 20px; color: var(--text-muted); }
+.empty-icon { font-size: 36px; margin-bottom: 10px; }
+.empty-text { font-size: 14px; font-weight: 700; }
+.empty-sub { font-size: 12px; margin-top: 3px; }
+
+/* LOADING OVERLAY */
+.loading-overlay { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 2000; flex-direction: column; align-items: center; justify-content: center; gap: 16px; }
+.loading-overlay.show { display: flex; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-brand { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: 0.08em; }
+.loading-msg { font-size: 13px; color: var(--text-muted); }
+
+/* SETUP SCREEN */
+.setup-screen { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+.setup-screen.show { display: flex; }
+.setup-card { background: var(--surface); border-radius: 16px; padding: 40px 44px; width: 100%; max-width: 520px; box-shadow: 0 24px 64px rgba(0,0,0,0.14); }
+.setup-brand { font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: 0.08em; margin-bottom: 6px; }
+.setup-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.setup-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 28px; line-height: 1.6; }
+.setup-step { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; font-size: 13px; color: var(--text-muted); }
+.setup-step-num { background: var(--nav-bg); color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.setup-step a { color: var(--blue); }
+.setup-sep { height: 1px; background: var(--border); margin: 22px 0; }
+.setup-error { font-size: 13px; color: var(--red); margin-top: 10px; font-weight: 600; display: none; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .main { padding: 14px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .week-row { grid-template-columns: 80px 70px 1fr; }
+  .week-packages { display: none; }
+  .board-col { flex: 0 0 230px; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="loading-brand">CVWD</div>
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loading-msg">Connecting...</div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-brand">CVWD</div>
+    <div class="setup-title">Connect to Supabase</div>
+    <div class="setup-sub">First-time setup. You'll only do this once per device.</div>
+
+    <div class="setup-step">
+      <div class="setup-step-num">1</div>
+      <div>Go to your <strong>Supabase project</strong> → Settings → API. Copy your <strong>Project URL</strong> and <strong>anon / public key</strong>.</div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-step-num">2</div>
+      <div>In the Supabase <strong>SQL Editor</strong>, run this once to create the data table:<br>
+        <code style="display:block;margin-top:6px;padding:10px;background:var(--gray-bg);border-radius:6px;font-size:12px;line-height:1.6">create table if not exists app_state (<br>&nbsp;&nbsp;id integer primary key default 1,<br>&nbsp;&nbsp;state jsonb not null default '{}',<br>&nbsp;&nbsp;updated_at timestamptz default now()<br>);<br>alter table app_state enable row level security;<br>create policy "team access" on app_state<br>&nbsp;&nbsp;for all using (true) with check (true);</code>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="setup-step-num">3</div>
+      <div>Paste your credentials below.</div>
+    </div>
+
+    <div class="setup-sep"></div>
+
+    <div class="form-group">
+      <label>Supabase Project URL</label>
+      <input type="url" id="setup-url" placeholder="https://xxxxxxxxxxxx.supabase.co" autocomplete="off">
+    </div>
+    <div class="form-group">
+      <label>Supabase Anon / Public Key</label>
+      <input type="text" id="setup-key" placeholder="eyJhbGciOiJIUzI1NiIs..." autocomplete="off">
+    </div>
+    <div class="setup-error" id="setup-error"></div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px" onclick="submitSetup()">Connect & Launch</button>
+    <div style="margin-top:12px;font-size:12px;color:var(--text-muted);text-align:center">Your anon key is safe to share — it's a public key by design.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<nav class="nav" id="main-nav" style="display:none">
+  <div class="nav-brand">CVWD</div>
+  <button class="nav-link" onclick="showView('dashboard')">Dashboard</button>
+  <button class="nav-link" onclick="showView('office')">Office Pipeline</button>
+  <button class="nav-link" onclick="showView('shop')">Shop Board</button>
+  <button class="nav-link" onclick="showView('blockers')">Blockers</button>
+  <button class="nav-link" onclick="showView('capacity')">Capacity</button>
+  <div class="nav-right">
+    <span class="sync-dot sync-saving" id="sync-dot" title="Connecting..."></span>
+    <span class="sync-label" id="sync-label">connecting</span>
+    <button class="nav-settings" onclick="openSettings()" title="Settings">⚙</button>
+  </div>
+</nav>
+
+<div class="main" id="main-content" style="display:none">
+  <div id="view-dashboard" class="view"></div>
+  <div id="view-office" class="view"></div>
+  <div id="view-shop" class="view"></div>
+  <div id="view-blockers" class="view"></div>
+  <div id="view-capacity" class="view"></div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal-content"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ================================================================
+// CONSTANTS
+// ================================================================
+const OFFICE_STAGES = [
+  'Lead','Sold','Design','Engineering','Materials Ordered',
+  'Released To Production','Install Scheduled','Complete','Final Payment Received'
+];
+const SHOP_STAGES = [
+  'Engineering Complete','Ready For Production','In Production',
+  'Ready For Finish','In Finish','Ready For Install','Installed'
+];
+const OPERATIONS = [
+  '','CNC','Door Milling / Profiling','Door Assembly','Edgebanding',
+  'Box Build','Faceframe Build','Finish Prep','Finish','Final Assembly','Other'
+];
+const BLOCKER_TYPES = [
+  'Waiting on Design','Waiting on Engineering','Waiting on Materials',
+  'Waiting on Hardware','Waiting on Customer Decision','Waiting on CNC',
+  'Waiting on Marshall','Waiting on Assembly','Waiting on Finish Prep',
+  'Waiting on Finish','Waiting on Install','Waiting on Dan','Rework','Other'
+];
+const RISK_LEVELS = ['Low','Medium','High','Critical'];
+
+// ================================================================
+// STATE
+// ================================================================
+let state = { projects: [], packages: [], blockers: [], weekNotes: {}, shopCapacity: 3 };
+let currentView = 'dashboard';
+let capacityOffset = 0;
+let dragPkgId = null;
+let supabaseClient = null;
+let realtimeIgnoreUntil = 0;
+let saveTimer = null;
+
+// ================================================================
+// SUPABASE SETUP
+// ================================================================
+function getConfig() {
+  try { return JSON.parse(localStorage.getItem('cvwd_config')); } catch(e) { return null; }
+}
+
+function saveConfig(url, key) {
+  localStorage.setItem('cvwd_config', JSON.stringify({ url, key }));
+}
+
+function initSupabaseClient(config) {
+  const { createClient } = window.supabase;
+  supabaseClient = createClient(config.url, config.key);
+}
+
+async function submitSetup() {
+  const url = document.getElementById('setup-url').value.trim();
+  const key = document.getElementById('setup-key').value.trim();
+  const errEl = document.getElementById('setup-error');
+  errEl.style.display = 'none';
+  if (!url || !key) { errEl.textContent = 'Both fields are required.'; errEl.style.display = 'block'; return; }
+  if (!url.startsWith('https://')) { errEl.textContent = 'URL should start with https://'; errEl.style.display = 'block'; return; }
+
+  initSupabaseClient({ url, key });
+
+  // Test connection
+  showLoading('Testing connection...');
+  try {
+    const { error } = await supabaseClient.from('app_state').select('id').limit(1);
+    if (error) throw error;
+    saveConfig(url, key);
+    document.getElementById('setup-screen').classList.remove('show');
+    await initApp();
+  } catch(e) {
+    hideLoading();
+    errEl.textContent = 'Connection failed: ' + (e.message || 'Check your URL and key, and make sure the table was created.');
+    errEl.style.display = 'block';
+  }
+}
+
+// ================================================================
+// LOADING / SYNC UI
+// ================================================================
+function showLoading(msg) {
+  document.getElementById('loading-msg').textContent = msg || 'Loading...';
+  document.getElementById('loading-overlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+function setSyncStatus(status) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.className = 'sync-dot sync-' + status;
+  const labels = { ok: 'synced', saving: 'saving…', error: 'offline', offline: 'offline' };
+  lbl.textContent = labels[status] || status;
+  dot.title = { ok: 'Connected to Supabase', saving: 'Saving...', error: 'Could not reach Supabase — changes saved locally', offline: 'Offline' }[status] || '';
+}
+
+// ================================================================
+// DATA LAYER
+// ================================================================
+async function loadStateFromDB() {
+  const { data, error } = await supabaseClient.from('app_state').select('state').eq('id', 1).maybeSingle();
+  if (error) throw error;
+  return data?.state || null;
+}
+
+async function saveStateToDB() {
+  setSyncStatus('saving');
+  try {
+    const { error } = await supabaseClient.from('app_state').upsert(
+      { id: 1, state, updated_at: new Date().toISOString() },
+      { onConflict: 'id' }
+    );
+    if (error) throw error;
+    setSyncStatus('ok');
+  } catch(e) {
+    console.error('Save error:', e);
+    setSyncStatus('error');
+  }
+}
+
+function saveState() {
+  // Cache locally in case of offline
+  try { localStorage.setItem('cvwd_cache', JSON.stringify(state)); } catch(e) {}
+  // Debounce DB writes by 800ms to avoid hammering on rapid changes
+  if (saveTimer) clearTimeout(saveTimer);
+  realtimeIgnoreUntil = Date.now() + 4000;
+  saveTimer = setTimeout(() => {
+    if (supabaseClient) saveStateToDB();
+  }, 800);
+}
+
+function subscribeRealtime() {
+  supabaseClient.channel('app_state_changes')
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'app_state' }, payload => {
+      if (Date.now() < realtimeIgnoreUntil) return;
+      if (payload.new?.state) {
+        state = payload.new.state;
+        if (!state.weekNotes) state.weekNotes = {};
+        if (!state.shopCapacity) state.shopCapacity = 3;
+        renderView(currentView);
+        setSyncStatus('ok');
+      }
+    })
+    .subscribe(status => {
+      if (status === 'SUBSCRIBED') setSyncStatus('ok');
+    });
+}
+
+// ================================================================
+// APP INIT
+// ================================================================
+async function initApp() {
+  showLoading('Loading shop data...');
+  try {
+    const dbState = await loadStateFromDB();
+    if (dbState && (dbState.projects?.length > 0 || dbState.packages?.length > 0)) {
+      state = dbState;
+      if (!state.weekNotes) state.weekNotes = {};
+      if (!state.shopCapacity) state.shopCapacity = 3;
+    } else {
+      // First-ever load — seed sample data
+      initSampleData();
+      await saveStateToDB();
+    }
+    subscribeRealtime();
+  } catch(e) {
+    console.error('Load error:', e);
+    setSyncStatus('error');
+    // Fall back to local cache if available
+    const cached = localStorage.getItem('cvwd_cache');
+    if (cached) {
+      try { state = JSON.parse(cached); } catch(e2) {}
+    }
+  }
+  hideLoading();
+  document.getElementById('main-nav').style.display = '';
+  document.getElementById('main-content').style.display = '';
+  showView('dashboard');
+}
+
+window.addEventListener('load', async () => {
+  const config = getConfig();
+  if (!config) {
+    document.getElementById('setup-screen').classList.add('show');
+    return;
+  }
+  initSupabaseClient(config);
+  await initApp();
+});
+
+// ================================================================
+// SETTINGS MODAL
+// ================================================================
+function openSettings() {
+  const config = getConfig() || {};
+  showModal(`
+    <div class="modal-title">Settings</div>
+    <div class="form-group">
+      <label>Supabase Project URL</label>
+      <input type="url" id="set-url" value="${config.url||''}">
+    </div>
+    <div class="form-group">
+      <label>Supabase Anon Key</label>
+      <input type="text" id="set-key" value="${config.key||''}">
+    </div>
+    <div class="form-group">
+      <label>Shop Capacity (weeks per calendar week)</label>
+      <input type="number" id="set-cap" value="${state.shopCapacity||3}" min="0.5" max="20" step="0.5">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="clearAllData()">Reset All Data</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+    </div>
+  `);
+}
+
+async function saveSettings() {
+  const url = document.getElementById('set-url').value.trim();
+  const key = document.getElementById('set-key').value.trim();
+  const cap = parseFloat(document.getElementById('set-cap').value) || 3;
+  if (url && key) {
+    saveConfig(url, key);
+    initSupabaseClient({ url, key });
+  }
+  state.shopCapacity = cap;
+  saveState();
+  closeModal();
+  renderView(currentView);
+}
+
+function clearAllData() {
+  if (!confirm('This will permanently delete ALL projects, packages, and blocker logs from the database. There is no undo.\n\nType DELETE to confirm.')) return;
+  const confirm2 = window.prompt('Type DELETE to confirm:');
+  if (confirm2 !== 'DELETE') return;
+  state = { projects: [], packages: [], blockers: [], weekNotes: {}, shopCapacity: state.shopCapacity || 3 };
+  saveState();
+  closeModal();
+  renderView(currentView);
+}
+
+// ================================================================
+// HELPERS
+// ================================================================
+function fmt(val, type) {
+  if (val === null || val === undefined || val === '') return '—';
+  if (type === 'money') return '$' + Number(val).toLocaleString();
+  if (type === 'date') {
+    if (!val) return '—';
+    const p = val.split('-');
+    return `${p[1]}/${p[2]}/${p[0]}`;
+  }
+  return val;
+}
+
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  return Math.round((new Date(dateStr + 'T12:00:00') - new Date()) / 86400000);
+}
+
+function getMonday(d) {
+  const dt = new Date(d);
+  const day = dt.getDay();
+  dt.setDate(dt.getDate() - (day === 0 ? 6 : day - 1));
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function weekKey(d) { return toLocalDateStr(getMonday(d)); }
+
+function nextWeeks(n, startOffset) {
+  startOffset = startOffset || 0;
+  const weeks = [];
+  const start = getMonday(new Date());
+  for (let i = startOffset; i < startOffset + n; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate() + i * 7);
+    weeks.push(toLocalDateStr(d));
+  }
+  return weeks;
+}
+
+function formatWeekLabel(wk) {
+  return new Date(wk + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+function nowStr() { return new Date().toISOString(); }
+function getProject(id) { return state.projects.find(p => p.id === id); }
+function getPackage(id) { return state.packages.find(p => p.id === id); }
+function activeBlockers(pkgId) { return state.blockers.filter(b => b.packageId === pkgId && !b.dateUnblocked); }
+
+function calcDaysBlocked(b) {
+  if (!b.dateUnblocked) return Math.max(0, Math.round((new Date() - new Date(b.dateBlocked + 'T12:00:00')) / 86400000));
+  if (b.daysBlocked !== null && b.daysBlocked !== undefined) return b.daysBlocked;
+  return Math.max(0, Math.round((new Date(b.dateUnblocked + 'T12:00:00') - new Date(b.dateBlocked + 'T12:00:00')) / 86400000));
+}
+
+function stageBadge(s) {
+  const map = { 'Complete': 'green', 'Final Payment Received': 'green', 'Released To Production': 'blue', 'Materials Ordered': 'blue', 'Install Scheduled': 'yellow', 'Lead': 'gray' };
+  return `<span class="badge badge-${map[s]||'gray'}">${s}</span>`;
+}
+function riskBadge(r) {
+  const map = { Low: 'green', Medium: 'yellow', High: 'red', Critical: 'red' };
+  return `<span class="badge badge-${map[r]||'gray'}">${r}</span>`;
+}
+
+// ================================================================
+// SAMPLE DATA
+// ================================================================
+function initSampleData() {
+  const pid1 = genId(), pid2 = genId(), pid3 = genId();
+
+  const wk = (offset) => {
+    const d = new Date();
+    const day = d.getDay();
+    d.setDate(d.getDate() - (day === 0 ? 6 : day - 1) + offset * 7);
+    d.setHours(0,0,0,0);
+    return toLocalDateStr(d);
+  };
+  const futureDate = (n) => { const d = new Date(); d.setDate(d.getDate() + n); return toLocalDateStr(d); };
+  const pastDate = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return toLocalDateStr(d); };
+
+  state.projects = [
+    { id: pid1, projectName: 'Parianos Residence', customerName: 'Mike Parianos', contractValue: 68500, depositReceived: true, promisedInstallDate: futureDate(82), officeStage: 'Released To Production', riskLevel: 'Medium', notes: 'Whole-house project, multiple install trips. Basement kitchen first.', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: pid2, projectName: 'Gasz Residence', customerName: 'Sarah Gasz', contractValue: 41200, depositReceived: true, promisedInstallDate: futureDate(37), officeStage: 'Engineering', riskLevel: 'Low', notes: 'Kitchen, pantry, laundry, in-law kitchen, wet bar.', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: pid3, projectName: 'Severini Residence', customerName: 'Tony Severini', contractValue: 22800, depositReceived: false, promisedInstallDate: futureDate(117), officeStage: 'Design', riskLevel: 'Low', notes: 'Office built-ins and mudroom. Deposit pending signed contract.', createdAt: nowStr(), updatedAt: nowStr() }
+  ];
+
+  const p1=genId(),p2=genId(),p3=genId(),p4=genId(),p5=genId();
+  const p6=genId(),p7=genId(),p8=genId(),p9=genId(),p10=genId();
+
+  state.packages = [
+    { id: p1,  projectId: pid1, packageName: 'Parianos Basement Kitchen', installPriority: 1, productionPriority: 1, targetInstallDate: futureDate(20), shopStage: 'In Finish',            currentOperation: 'Finish',  estimatedShopWeeks: 2.5, statusColor: 'green',  scheduledWeek: wk(0), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p2,  projectId: pid1, packageName: 'Parianos Vanities',         installPriority: 2, productionPriority: 2, targetInstallDate: futureDate(37), shopStage: 'Ready For Production', currentOperation: '',        estimatedShopWeeks: 1.5, statusColor: 'yellow', scheduledWeek: wk(2), notes: 'Waiting on pulls hardware — backorder', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p3,  projectId: pid1, packageName: 'Parianos Primary Bath',     installPriority: 3, productionPriority: 3, targetInstallDate: futureDate(54), shopStage: 'Engineering Complete', currentOperation: '',        estimatedShopWeeks: 1,   statusColor: 'gray',   scheduledWeek: wk(4), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p4,  projectId: pid1, packageName: 'Parianos Kitchen',          installPriority: 4, productionPriority: 4, targetInstallDate: futureDate(68), shopStage: 'Engineering Complete', currentOperation: '',        estimatedShopWeeks: 3,   statusColor: 'gray',   scheduledWeek: wk(5), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p5,  projectId: pid1, packageName: 'Parianos Pantry',           installPriority: 5, productionPriority: 5, targetInstallDate: futureDate(82), shopStage: 'Engineering Complete', currentOperation: '',        estimatedShopWeeks: 1,   statusColor: 'gray',   scheduledWeek: wk(6), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p6,  projectId: pid2, packageName: 'Gasz Kitchen',              installPriority: 1, productionPriority: 1, targetInstallDate: futureDate(37), shopStage: 'Ready For Production', currentOperation: 'CNC',     estimatedShopWeeks: 3,   statusColor: 'yellow', scheduledWeek: wk(1), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p7,  projectId: pid2, packageName: 'Gasz Pantry',               installPriority: 2, productionPriority: 2, targetInstallDate: futureDate(37), shopStage: 'Ready For Production', currentOperation: '',        estimatedShopWeeks: 1,   statusColor: 'green',  scheduledWeek: wk(2), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p8,  projectId: pid2, packageName: 'Gasz Laundry',              installPriority: 3, productionPriority: 3, targetInstallDate: futureDate(37), shopStage: 'Engineering Complete', currentOperation: '',        estimatedShopWeeks: 0.5, statusColor: 'gray',   scheduledWeek: wk(3), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p9,  projectId: pid2, packageName: 'Gasz In-Law Kitchen',       installPriority: 4, productionPriority: 4, targetInstallDate: futureDate(37), shopStage: 'Engineering Complete', currentOperation: '',        estimatedShopWeeks: 2,   statusColor: 'gray',   scheduledWeek: wk(3), notes: '', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: p10, projectId: pid2, packageName: 'Gasz Wet Bar',              installPriority: 5, productionPriority: 5, targetInstallDate: futureDate(37), shopStage: 'Engineering Complete', currentOperation: '',        estimatedShopWeeks: 1,   statusColor: 'gray',   scheduledWeek: wk(4), notes: '', createdAt: nowStr(), updatedAt: nowStr() }
+  ];
+
+  state.blockers = [
+    { id: genId(), packageId: p2, projectId: pid1, blockerType: 'Waiting on Hardware', dateBlocked: pastDate(5), dateUnblocked: '', daysBlocked: null, notes: 'Pulls on backorder from supplier, ETA unknown', createdAt: nowStr(), updatedAt: nowStr() },
+    { id: genId(), packageId: p6, projectId: pid2, blockerType: 'Waiting on Engineering', dateBlocked: pastDate(4), dateUnblocked: pastDate(2), daysBlocked: 2, notes: 'Needed elevation clarification from designer', createdAt: nowStr(), updatedAt: nowStr() }
+  ];
+  state.weekNotes = {};
+  state.shopCapacity = 3;
+}
+
+// ================================================================
+// NAVIGATION
+// ================================================================
+function showView(v) {
+  currentView = v;
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.getElementById('view-' + v).classList.add('active');
+  document.querySelectorAll('.nav-link').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick') === `showView('${v}')`);
+  });
+  renderView(v);
+}
+
+function renderView(v) {
+  const fns = { dashboard: renderDashboard, office: renderOffice, shop: renderShop, blockers: renderBlockers, capacity: renderCapacity };
+  if (fns[v]) fns[v]();
+}
+
+// ================================================================
+// DASHBOARD
+// ================================================================
+function renderDashboard() {
+  const el = document.getElementById('view-dashboard');
+  const active = state.projects.filter(p => !['Complete','Final Payment Received'].includes(p.officeStage));
+  const totalSold = active.reduce((s, p) => s + (p.contractValue || 0), 0);
+  const inDesign = state.projects.filter(p => p.officeStage === 'Design').length;
+  const inEng = state.projects.filter(p => p.officeStage === 'Engineering').length;
+  const inProd = state.projects.filter(p => p.officeStage === 'Released To Production').length;
+  const outstanding = state.projects.filter(p => p.officeStage !== 'Final Payment Received').reduce((s,p) => s+(p.contractValue||0), 0);
+  const now30 = new Date(); now30.setDate(now30.getDate() + 30);
+  const installing30 = state.projects.filter(p => { if (!p.promisedInstallDate) return false; const d = new Date(p.promisedInstallDate+'T12:00:00'); return d >= new Date() && d <= now30; }).length;
+  const activeBlockerList = state.blockers.filter(b => !b.dateUnblocked);
+  const inProdPkgs = state.packages.filter(p => p.shopStage === 'In Production');
+  const readyInstall = state.packages.filter(p => p.shopStage === 'Ready For Install');
+  const inFinishPkgs = state.packages.filter(p => p.shopStage === 'In Finish' || p.shopStage === 'Ready For Finish');
+  const readyProd = state.packages.filter(p => p.shopStage === 'Ready For Production');
+  const thisWeek = weekKey(new Date());
+  const thisWeekLoad = state.packages.filter(p => p.scheduledWeek === thisWeek).reduce((s,p) => s+(p.estimatedShopWeeks||0), 0);
+  const cap = state.shopCapacity || 3;
+
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Shop Dashboard</div>
+        <div class="page-subtitle">Crooked Valley Wood Design &nbsp;·&nbsp; ${new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
+      </div>
+    </div>
+    ${thisWeekLoad > cap ? `<div class="alert alert-red">⚠ This week is overloaded — ${thisWeekLoad.toFixed(1)} of ${cap} shop weeks scheduled. Review Capacity.</div>` : ''}
+    ${activeBlockerList.length > 0 ? `<div class="alert alert-yellow">⚡ ${activeBlockerList.length} package${activeBlockerList.length>1?'s are':' is'} currently blocked. Check the Blockers view.</div>` : ''}
+    <div class="stats-grid">
+      <div class="stat-card blue"><div class="stat-label">Sold Backlog</div><div class="stat-value" style="font-size:20px">${fmt(totalSold,'money')}</div><div class="stat-sub">${active.length} active projects</div></div>
+      <div class="stat-card yellow"><div class="stat-label">In Design</div><div class="stat-value">${inDesign}</div><div class="stat-sub">Projects</div></div>
+      <div class="stat-card yellow"><div class="stat-label">In Engineering</div><div class="stat-value">${inEng}</div><div class="stat-sub">Projects</div></div>
+      <div class="stat-card green"><div class="stat-label">In Production</div><div class="stat-value">${inProd}</div><div class="stat-sub">Projects released</div></div>
+      <div class="stat-card red"><div class="stat-label">Installing ≤30 Days</div><div class="stat-value">${installing30}</div><div class="stat-sub">Projects</div></div>
+      <div class="stat-card blue"><div class="stat-label">Outstanding Value</div><div class="stat-value" style="font-size:18px">${fmt(outstanding,'money')}</div><div class="stat-sub">Not final paid</div></div>
+    </div>
+    <div class="dash-grid">
+      <div class="dash-card">
+        <div class="dash-card-title">Currently In Production</div>
+        ${inProdPkgs.length===0?'<div style="color:var(--text-muted);font-size:12px">Nothing in production</div>':inProdPkgs.map(pkg=>{const proj=getProject(pkg.projectId);const blocked=activeBlockers(pkg.id).length>0;return`<div class="dash-item"><span class="dot dot-${blocked?'red':pkg.statusColor}"></span><div class="dash-item-name">${pkg.packageName}<div class="dash-item-sub">${proj?.projectName||''} · ${pkg.currentOperation||'No operation set'}</div></div></div>`;}).join('')}
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">Ready For Production</div>
+        ${readyProd.length===0?'<div style="color:var(--text-muted);font-size:12px">Nothing queued</div>':readyProd.map(pkg=>{const proj=getProject(pkg.projectId);const blocked=activeBlockers(pkg.id).length>0;return`<div class="dash-item"><span class="dot dot-${blocked?'red':pkg.statusColor}"></span><div class="dash-item-name">${pkg.packageName}<div class="dash-item-sub">${proj?.projectName||''} · Pri #${pkg.productionPriority}</div></div></div>`;}).join('')}
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">In Finish</div>
+        ${inFinishPkgs.length===0?'<div style="color:var(--text-muted);font-size:12px">Nothing in finish</div>':inFinishPkgs.map(pkg=>{const proj=getProject(pkg.projectId);return`<div class="dash-item"><span class="dot dot-${pkg.statusColor}"></span><div class="dash-item-name">${pkg.packageName}<div class="dash-item-sub">${proj?.projectName||''} · ${pkg.shopStage}</div></div></div>`;}).join('')}
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">Ready For Install</div>
+        ${readyInstall.length===0?'<div style="color:var(--text-muted);font-size:12px">Nothing ready to install</div>':readyInstall.map(pkg=>{const proj=getProject(pkg.projectId);const d=daysUntil(pkg.targetInstallDate);return`<div class="dash-item"><span class="dot dot-green"></span><div class="dash-item-name">${pkg.packageName}<div class="dash-item-sub">${proj?.projectName||''} · Install ${fmt(pkg.targetInstallDate,'date')}${d!==null?' ('+d+'d)':''}</div></div></div>`;}).join('')}
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">Active Blockers</div>
+        ${activeBlockerList.length===0?'<div style="color:var(--green);font-size:12px;font-weight:700">✓ No active blockers — shop is flowing</div>':activeBlockerList.map(b=>{const pkg=getPackage(b.packageId);return`<div class="dash-item"><span class="dot dot-red"></span><div class="dash-item-name">${pkg?.packageName||'Unknown'}<div class="dash-item-sub">${b.blockerType} · ${calcDaysBlocked(b)} day${calcDaysBlocked(b)!==1?'s':''}</div></div></div>`;}).join('')}
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">This Week's Capacity</div>
+        <div style="margin-bottom:10px"><div style="font-size:24px;font-weight:800;color:${thisWeekLoad>cap?'var(--red)':thisWeekLoad>=cap*0.8?'var(--yellow)':'var(--green)'}">${thisWeekLoad.toFixed(1)} <span style="font-size:14px;font-weight:400;color:var(--text-muted)">/ ${cap} shop weeks</span></div></div>
+        <div class="week-bar-wrap" style="height:10px;margin-bottom:10px"><div class="week-bar ${thisWeekLoad>cap?'red':thisWeekLoad>=cap*0.8?'yellow':'green'}" style="width:${Math.min(thisWeekLoad/cap,1)*100}%"></div></div>
+        ${state.packages.filter(p=>p.scheduledWeek===thisWeek).map(p=>`<div class="dash-item"><span class="dot dot-${p.statusColor}"></span><div class="dash-item-name" style="font-size:11px">${p.packageName} <span style="color:var(--text-muted);font-weight:400">${p.estimatedShopWeeks}w</span></div></div>`).join('')||'<div style="color:var(--text-muted);font-size:12px">No packages scheduled this week</div>'}
+      </div>
+    </div>
+  `;
+}
+
+// ================================================================
+// OFFICE PIPELINE
+// ================================================================
+function renderOffice() {
+  const el = document.getElementById('view-office');
+  const projects = [...state.projects].sort((a,b) => OFFICE_STAGES.indexOf(a.officeStage) - OFFICE_STAGES.indexOf(b.officeStage));
+  const totalValue = projects.reduce((s,p) => s+(p.contractValue||0), 0);
+  el.innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Office Pipeline</div><div class="page-subtitle">${projects.length} project${projects.length!==1?'s':''} · ${fmt(totalValue,'money')} total contract value</div></div>
+      <button class="btn btn-primary" onclick="openProjectModal()">+ Add Project</button>
+    </div>
+    <div class="table-wrap" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Project</th><th>Stage</th><th>Risk</th><th>Contract Value</th><th>Deposit</th><th>Install Date</th><th>Days Out</th><th>Notes</th><th></th></tr></thead>
+      <tbody>
+        ${projects.length===0?`<tr><td colspan="9"><div class="empty"><div class="empty-icon">📋</div><div class="empty-text">No projects yet</div><div class="empty-sub">Add your first project to get started</div></div></td></tr>`:
+          projects.map(p=>{const d=daysUntil(p.promisedInstallDate);const dStr=d===null?'—':d<0?`<span style="color:var(--red);font-weight:700">${Math.abs(d)}d overdue</span>`:d<=30?`<span style="color:var(--red);font-weight:700">${d}d</span>`:`${d}d`;return`<tr><td><div style="font-weight:700;font-size:13px">${p.projectName}</div><div style="font-size:11px;color:var(--text-muted)">${p.customerName}</div></td><td>${stageBadge(p.officeStage)}</td><td>${riskBadge(p.riskLevel)}</td><td style="font-weight:700">${fmt(p.contractValue,'money')}</td><td>${p.depositReceived?'<span style="color:var(--green);font-weight:700">✓ Received</span>':'<span style="color:var(--red);font-weight:600">Pending</span>'}</td><td>${fmt(p.promisedInstallDate,'date')}</td><td>${dStr}</td><td><span class="notes-text" title="${p.notes||''}">${p.notes||'—'}</span></td><td><button class="btn btn-secondary btn-sm" onclick="openProjectModal('${p.id}')">Edit</button></td></tr>`;}).join('')}
+      </tbody>
+    </table>
+    </div>
+    <div class="section-header"><div class="section-title">Stage Summary</div></div>
+    <div class="stats-grid">
+      ${OFFICE_STAGES.map(s=>{const ps=projects.filter(p=>p.officeStage===s);const val=ps.reduce((a,p)=>a+(p.contractValue||0),0);return`<div class="stat-card"><div class="stat-label">${s}</div><div class="stat-value" style="font-size:22px">${ps.length}</div>${val>0?`<div class="stat-sub">${fmt(val,'money')}</div>`:'<div class="stat-sub">&nbsp;</div>'}</div>`;}).join('')}
+    </div>
+  `;
+}
+
+// ================================================================
+// SHOP BOARD
+// ================================================================
+function renderShop() {
+  const el = document.getElementById('view-shop');
+  const pkgsByStage = {};
+  SHOP_STAGES.forEach(s => pkgsByStage[s] = []);
+  state.packages.forEach(p => { const k = SHOP_STAGES.includes(p.shopStage) ? p.shopStage : 'Engineering Complete'; pkgsByStage[k].push(p); });
+  SHOP_STAGES.forEach(s => pkgsByStage[s].sort((a,b) => (a.productionPriority||99)-(b.productionPriority||99)));
+
+  el.innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Shop Flow Board</div><div class="page-subtitle">${state.packages.length} packages · Drag cards between stages · Current Operation is inside each card</div></div>
+      <button class="btn btn-primary" onclick="openPackageModal()">+ Add Package</button>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="dot dot-green"></span> On Track</div>
+      <div class="legend-item"><span class="dot dot-yellow"></span> At Risk</div>
+      <div class="legend-item"><span class="dot dot-red"></span> Blocked / Critical</div>
+      <div class="legend-item"><span class="dot dot-gray"></span> Waiting / Inactive</div>
+      <span style="color:var(--text-muted);font-size:11px;margin-left:auto">#N = install priority</span>
+    </div>
+    <div class="board">
+      ${SHOP_STAGES.map(stage=>`
+        <div class="board-col" data-stage="${stage}" ondragover="handleDragOver(event)" ondrop="handleDrop(event,'${stage.replace(/'/g,"\\'")}')">
+          <div class="col-header"><span class="col-title">${stage}</span><span class="col-count">${pkgsByStage[stage].length}</span></div>
+          ${pkgsByStage[stage].map(pkg=>renderPkgCard(pkg)).join('')}
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderPkgCard(pkg) {
+  const proj = getProject(pkg.projectId);
+  const blocked = activeBlockers(pkg.id);
+  const statusClass = blocked.length > 0 ? 'status-red' : `status-${pkg.statusColor}`;
+  const d = daysUntil(pkg.targetInstallDate);
+  const urgent = d !== null && d <= 21;
+  return `
+    <div class="pkg-card ${statusClass}" draggable="true" data-pkg-id="${pkg.id}" ondragstart="handleDragStart(event,'${pkg.id}')" ondragend="handleDragEnd(event)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:5px">
+        <div style="min-width:0"><div class="pkg-name">${pkg.packageName}</div><div class="pkg-project">${proj?.projectName||'—'}</div></div>
+        <span class="pkg-priority" title="Install Priority">#${pkg.installPriority}</span>
+      </div>
+      <div class="pkg-meta">
+        ${pkg.currentOperation?`<span class="pkg-op">${pkg.currentOperation}</span>`:''}
+        <span class="pkg-weeks">${pkg.estimatedShopWeeks}w</span>
+        ${d!==null?`<span class="pkg-date" style="${urgent?'color:var(--red);font-weight:700':''}">${fmt(pkg.targetInstallDate,'date')}</span>`:''}
+      </div>
+      ${blocked.length>0?`<div class="pkg-blocked">⛔ ${blocked.map(b=>b.blockerType).join(' · ')}</div>`:''}
+      <div class="pkg-actions">
+        <button class="btn btn-secondary btn-sm" onclick="openPackageModal('${pkg.id}')">Edit</button>
+        <button class="btn btn-secondary btn-sm" onclick="openBlockerModal('${pkg.id}')" style="${blocked.length>0?'color:var(--red);border-color:#fca5a5':''}">${blocked.length>0?'⛔ Blocked':'+ Blocker'}</button>
+      </div>
+    </div>
+  `;
+}
+
+function handleDragStart(e, pkgId) { dragPkgId = pkgId; e.currentTarget.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', pkgId); }
+function handleDragEnd(e) { e.currentTarget.classList.remove('dragging'); document.querySelectorAll('.board-col').forEach(c => c.classList.remove('drag-over')); }
+function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; e.currentTarget.classList.add('drag-over'); }
+function handleDrop(e, stage) {
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  const pkgId = dragPkgId || e.dataTransfer.getData('text/plain');
+  if (!pkgId) return;
+  const pkg = getPackage(pkgId);
+  if (!pkg) return;
+  pkg.shopStage = stage; pkg.updatedAt = nowStr();
+  saveState(); renderShop(); dragPkgId = null;
+}
+
+// ================================================================
+// BLOCKERS
+// ================================================================
+function renderBlockers() {
+  const el = document.getElementById('view-blockers');
+  const active = state.blockers.filter(b => !b.dateUnblocked);
+  const totalDays = state.blockers.reduce((s,b) => s+calcDaysBlocked(b), 0);
+  const typeCounts = {};
+  state.blockers.forEach(b => typeCounts[b.blockerType] = (typeCounts[b.blockerType]||0)+1);
+  const sortedTypes = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]);
+  const maxCount = sortedTypes[0]?.[1]||1;
+  const longestActive = [...active].sort((a,b)=>calcDaysBlocked(b)-calcDaysBlocked(a)).slice(0,5);
+  const cut30=new Date(); cut30.setDate(cut30.getDate()-30);
+  const cut90=new Date(); cut90.setDate(cut90.getDate()-90);
+  const cnt30={},cnt90={};
+  state.blockers.forEach(b => {
+    if (new Date(b.dateBlocked+'T12:00:00')>=cut30) cnt30[b.blockerType]=(cnt30[b.blockerType]||0)+1;
+    if (new Date(b.dateBlocked+'T12:00:00')>=cut90) cnt90[b.blockerType]=(cnt90[b.blockerType]||0)+1;
+  });
+  const top30=Object.entries(cnt30).sort((a,b)=>b[1]-a[1])[0];
+  const top90=Object.entries(cnt90).sort((a,b)=>b[1]-a[1])[0];
+
+  el.innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Constraint & Blocker Tracking</div><div class="page-subtitle">Where work waits — not who to blame. Find Herbie.</div></div>
+    </div>
+    <div class="blocker-grid">
+      <div class="blocker-stat"><div class="blocker-stat-label">Active Blockers</div><div class="blocker-stat-value" style="color:${active.length>0?'var(--red)':'var(--green)'}">${active.length}</div><div class="blocker-stat-sub">Packages stopped right now</div></div>
+      <div class="blocker-stat"><div class="blocker-stat-label">Total Days Blocked</div><div class="blocker-stat-value">${totalDays}</div><div class="blocker-stat-sub">Across ${state.blockers.length} events</div></div>
+      <div class="blocker-stat"><div class="blocker-stat-label">Top Bottleneck — 30 Days</div><div class="blocker-stat-value" style="font-size:15px;line-height:1.3;margin-top:6px">${top30?top30[0]:'—'}</div><div class="blocker-stat-sub">${top30?top30[1]+' occurrences':'No data yet'}</div></div>
+      <div class="blocker-stat"><div class="blocker-stat-label">Top Bottleneck — 90 Days</div><div class="blocker-stat-value" style="font-size:15px;line-height:1.3;margin-top:6px">${top90?top90[0]:'—'}</div><div class="blocker-stat-sub">${top90?top90[1]+' occurrences':'No data yet'}</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px">
+      <div class="dash-card">
+        <div class="dash-card-title">Most Common Blockers (All Time)</div>
+        <div class="top-blocker-list">
+          ${sortedTypes.length===0?'<div style="color:var(--text-muted);font-size:12px">No blockers logged yet</div>':sortedTypes.slice(0,8).map(([type,count])=>`<div class="top-blocker-item"><div class="top-blocker-name">${type}</div><div class="top-blocker-bar"><div class="top-blocker-fill" style="width:${Math.round(count/maxCount*100)}%"></div></div><div class="top-blocker-count">${count}</div></div>`).join('')}
+        </div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-title">Longest Currently Blocked</div>
+        ${longestActive.length===0?'<div style="color:var(--green);font-size:13px;font-weight:700">✓ No active blockers</div>':longestActive.map(b=>{const pkg=getPackage(b.packageId);return`<div class="dash-item"><span class="dot dot-red"></span><div class="dash-item-name">${pkg?.packageName||'Unknown'}<div class="dash-item-sub">${b.blockerType} · ${calcDaysBlocked(b)} day${calcDaysBlocked(b)!==1?'s':''}</div></div></div>`;}).join('')}
+      </div>
+    </div>
+    <div class="section-header"><div class="section-title">Blocker Log</div><button class="btn btn-primary" onclick="openBlockerModal()">+ Log Blocker</button></div>
+    <div class="table-wrap" style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Package</th><th>Project</th><th>Blocker Type</th><th>Date Blocked</th><th>Date Unblocked</th><th>Days</th><th>Status</th><th>Notes</th><th></th></tr></thead>
+      <tbody>
+        ${state.blockers.length===0?`<tr><td colspan="9"><div class="empty"><div class="empty-icon">✅</div><div class="empty-text">No blockers logged</div><div class="empty-sub">The shop is flowing</div></div></td></tr>`:
+          [...state.blockers].sort((a,b)=>new Date(b.dateBlocked)-new Date(a.dateBlocked)).map(b=>{const pkg=getPackage(b.packageId);const proj=getProject(b.projectId);const days=calcDaysBlocked(b);const isActive=!b.dateUnblocked;return`<tr><td style="font-weight:700">${pkg?.packageName||'—'}</td><td>${proj?.projectName||'—'}</td><td>${b.blockerType}</td><td>${fmt(b.dateBlocked,'date')}</td><td>${b.dateUnblocked?fmt(b.dateUnblocked,'date'):'—'}</td><td style="font-weight:700;color:${days>7?'var(--red)':'inherit'}">${days}</td><td>${isActive?'<span class="badge badge-red">Active</span>':'<span class="badge badge-green">Resolved</span>'}</td><td><span class="notes-text" title="${b.notes||''}">${b.notes||'—'}</span></td><td style="white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="openBlockerModal(null,'${b.id}')">Edit</button>${isActive?`<button class="btn btn-secondary btn-sm" onclick="resolveBlocker('${b.id}')" style="color:var(--green);border-color:#86efac;margin-left:4px">Resolve</button>`:''}</td></tr>`;}).join('')}
+      </tbody>
+    </table>
+    </div>
+  `;
+}
+
+function resolveBlocker(id) {
+  const b = state.blockers.find(x=>x.id===id);
+  if (!b) return;
+  b.dateUnblocked = toLocalDateStr(new Date());
+  b.daysBlocked = calcDaysBlocked(b);
+  b.updatedAt = nowStr();
+  const pkg = getPackage(b.packageId);
+  if (pkg && activeBlockers(pkg.id).filter(x=>x.id!==id).length===0) { if (pkg.statusColor==='red') pkg.statusColor='green'; pkg.updatedAt=nowStr(); }
+  saveState(); renderBlockers();
+}
+
+// ================================================================
+// CAPACITY
+// ================================================================
+function renderCapacity() {
+  const el = document.getElementById('view-capacity');
+  const weeks = nextWeeks(26, capacityOffset);
+  const cap = state.shopCapacity || 3;
+  const thisWeek = weekKey(new Date());
+  el.innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Capacity Planning</div><div class="page-subtitle">Rolling 26-week view · Click any week to assign packages or add notes</div></div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;align-items:center;gap:6px">
+          <label style="font-size:11px;color:var(--text-muted);margin:0;text-transform:none;letter-spacing:0">Capacity (wks/week):</label>
+          <input type="number" value="${cap}" min="0.5" max="20" step="0.5" style="width:65px;padding:5px 8px" onchange="setShopCapacity(this.value)">
+        </div>
+        <button class="btn btn-secondary" onclick="shiftCapacity(-26)">◀ Back</button>
+        <button class="btn btn-secondary" onclick="shiftCapacity(26)">Forward ▶</button>
+        ${capacityOffset!==0?`<button class="btn btn-secondary" onclick="goToToday()">Today</button>`:''}
+      </div>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="dot dot-green"></span> Available (&lt;${Math.round(cap*0.8*10)/10}w)</div>
+      <div class="legend-item"><span class="dot dot-yellow"></span> Near capacity (${Math.round(cap*0.8*10)/10}–${cap}w)</div>
+      <div class="legend-item"><span class="dot dot-red"></span> Overloaded (&gt;${cap}w)</div>
+    </div>
+    <div style="display:grid;grid-template-columns:90px 90px 1fr 180px;gap:12px;padding:2px 17px 6px;margin-bottom:2px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Week of</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Load</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Utilization</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-muted)">Packages</div>
+    </div>
+    <div class="capacity-grid">${weeks.map(wk=>renderWeekRow(wk,cap,thisWeek)).join('')}</div>
+  `;
+}
+
+function renderWeekRow(wk, cap, thisWeek) {
+  const pkgs = state.packages.filter(p => p.scheduledWeek === wk);
+  const load = pkgs.reduce((s,p) => s+(p.estimatedShopWeeks||0), 0);
+  const pct = Math.min(load/cap, 1.2);
+  const overloaded = load > cap, nearCap = load >= cap*0.8;
+  const status = overloaded?'red':nearCap?'yellow':'green';
+  const isCurrent = wk === thisWeek;
+  const notes = state.weekNotes[wk];
+  return `
+    <div class="week-row status-${status}${isCurrent?' current-week':''}" onclick="openWeekModal('${wk}')">
+      <div class="week-label" style="${isCurrent?'color:var(--accent);':''}">${isCurrent?'▶ ':''}${formatWeekLabel(wk)}${notes?`<div style="font-size:9px;color:var(--text-muted);font-weight:400;margin-top:1px">${notes}</div>`:''}</div>
+      <div class="week-load" style="color:var(--${overloaded?'red':nearCap?'yellow':'green'})">${load.toFixed(1)} / ${cap}</div>
+      <div><div class="week-bar-wrap"><div class="week-bar ${status}" style="width:${Math.min(pct,1)*100}%"></div></div></div>
+      <div class="week-packages">${pkgs.length===0?'<span style="font-size:10px;color:var(--text-muted)">Open</span>':pkgs.slice(0,3).map(p=>`<span class="week-pkg-chip" title="${p.packageName}">${p.packageName}</span>`).join('')+(pkgs.length>3?`<span class="week-pkg-chip">+${pkgs.length-3} more</span>`:'')}</div>
+    </div>
+  `;
+}
+
+function shiftCapacity(n) { capacityOffset = Math.max(0, capacityOffset + n); renderCapacity(); }
+function goToToday() { capacityOffset = 0; renderCapacity(); }
+function setShopCapacity(v) { state.shopCapacity = Math.max(0.5, parseFloat(v)||3); saveState(); renderCapacity(); }
+
+function openWeekModal(wk) {
+  const pkgs = state.packages.filter(p => p.scheduledWeek === wk);
+  const cap = state.shopCapacity || 3;
+  const load = pkgs.reduce((s,p) => s+(p.estimatedShopWeeks||0), 0);
+  showModal(`
+    <div class="modal-title">Week of ${formatWeekLabel(wk)}</div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px">
+      <div class="week-bar-wrap" style="flex:1"><div class="week-bar ${load>cap?'red':load>=cap*0.8?'yellow':'green'}" style="width:${Math.min(load/cap,1)*100}%"></div></div>
+      <span style="font-size:13px;font-weight:700;color:${load>cap?'var(--red)':load>=cap*0.8?'var(--yellow)':'var(--green)'}">${load.toFixed(1)} / ${cap} wks</span>
+    </div>
+    <div class="form-group">
+      <label>Packages Assigned</label>
+      ${pkgs.length===0?'<div style="color:var(--text-muted);font-size:13px;margin-bottom:8px">No packages assigned yet</div>':pkgs.map(p=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)"><span class="dot dot-${p.statusColor}"></span><span style="flex:1;font-size:13px;font-weight:600">${p.packageName}</span><span style="font-size:11px;color:var(--text-muted)">${p.estimatedShopWeeks}w</span><button class="btn btn-secondary btn-sm" onclick="unassignPackage('${p.id}','${wk}')">Remove</button></div>`).join('')}
+    </div>
+    <div class="form-group">
+      <label>Add Package to This Week</label>
+      <div style="display:flex;gap:8px">
+        <select id="wk-pkg-sel" style="flex:1">
+          <option value="">Choose a package...</option>
+          ${state.packages.filter(p=>p.shopStage!=='Installed').map(p=>{const proj=getProject(p.projectId);const here=p.scheduledWeek===wk;return`<option value="${p.id}" ${here?'disabled selected':''}>${p.packageName} (${p.estimatedShopWeeks}w)${p.scheduledWeek&&!here?' ['+formatWeekLabel(p.scheduledWeek)+']':''}</option>`;}).join('')}
+        </select>
+        <button class="btn btn-primary" onclick="assignPkgToWeek('${wk}')">Assign</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Week Notes</label>
+      <input type="text" id="wk-notes" value="${(state.weekNotes[wk]||'').replace(/"/g,'&quot;')}" placeholder="Short week, crew vacation, delivery day...">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="saveWeekNotes('${wk}');closeModal()">Save &amp; Close</button>
+    </div>
+  `);
+}
+
+function assignPkgToWeek(wk) {
+  const sel = document.getElementById('wk-pkg-sel');
+  if (!sel?.value) return;
+  const pkg = getPackage(sel.value);
+  if (!pkg) return;
+  pkg.scheduledWeek = wk; pkg.updatedAt = nowStr();
+  saveState(); openWeekModal(wk);
+}
+
+function unassignPackage(pkgId, wk) {
+  const pkg = getPackage(pkgId);
+  if (!pkg) return;
+  pkg.scheduledWeek = ''; pkg.updatedAt = nowStr();
+  saveState(); openWeekModal(wk);
+}
+
+function saveWeekNotes(wk) {
+  const notes = document.getElementById('wk-notes');
+  state.weekNotes[wk] = notes ? notes.value.trim() : '';
+  saveState();
+}
+
+// ================================================================
+// MODAL HELPERS
+// ================================================================
+function showModal(html) {
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  if (currentView === 'capacity') renderCapacity();
+}
+function handleOverlayClick(e) { if (e.target === document.getElementById('modal-overlay')) closeModal(); }
+
+// ================================================================
+// PROJECT MODAL
+// ================================================================
+function openProjectModal(id) {
+  const p = id ? state.projects.find(x=>x.id===id) : null;
+  showModal(`
+    <div class="modal-title">${p?'Edit Project':'Add Project'}</div>
+    <input type="hidden" id="proj-id" value="${p?.id||''}">
+    <div class="form-row">
+      <div class="form-group"><label>Project Name *</label><input type="text" id="proj-name" value="${(p?.projectName||'').replace(/"/g,'&quot;')}" placeholder="Smith Residence"></div>
+      <div class="form-group"><label>Customer Name</label><input type="text" id="proj-customer" value="${(p?.customerName||'').replace(/"/g,'&quot;')}" placeholder="John Smith"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Contract Value ($)</label><input type="number" id="proj-value" value="${p?.contractValue||''}" placeholder="25000"></div>
+      <div class="form-group"><label>Deposit Received</label><select id="proj-deposit"><option value="true" ${p?.depositReceived?'selected':''}>✓ Yes — Received</option><option value="false" ${!p?.depositReceived?'selected':''}>Pending</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Promised Install Date</label><input type="date" id="proj-date" value="${p?.promisedInstallDate||''}"></div>
+      <div class="form-group"><label>Risk Level</label><select id="proj-risk">${RISK_LEVELS.map(r=>`<option value="${r}" ${p?.riskLevel===r?'selected':''}>${r}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label>Office Stage</label><select id="proj-stage">${OFFICE_STAGES.map(s=>`<option value="${s}" ${p?.officeStage===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="form-group"><label>Notes</label><textarea id="proj-notes" placeholder="Relevant notes...">${p?.notes||''}</textarea></div>
+    <div class="modal-footer">
+      ${p?`<button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}')">Delete Project</button><div style="flex:1"></div>`:''}
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProject()">Save Project</button>
+    </div>
+  `);
+}
+
+function saveProject() {
+  const id = document.getElementById('proj-id').value;
+  const name = document.getElementById('proj-name').value.trim();
+  if (!name) { alert('Project name is required.'); return; }
+  const data = { projectName: name, customerName: document.getElementById('proj-customer').value.trim(), contractValue: parseFloat(document.getElementById('proj-value').value)||0, depositReceived: document.getElementById('proj-deposit').value==='true', promisedInstallDate: document.getElementById('proj-date').value, riskLevel: document.getElementById('proj-risk').value, officeStage: document.getElementById('proj-stage').value, notes: document.getElementById('proj-notes').value.trim(), updatedAt: nowStr() };
+  if (id) { Object.assign(state.projects.find(p=>p.id===id), data); } else { state.projects.push({ id: genId(), createdAt: nowStr(), ...data }); }
+  saveState(); closeModal(); renderView(currentView);
+}
+
+function deleteProject(id) {
+  if (!confirm('Delete this project and all its packages?')) return;
+  const pkgIds = state.packages.filter(p=>p.projectId===id).map(p=>p.id);
+  state.projects = state.projects.filter(p=>p.id!==id);
+  state.packages = state.packages.filter(p=>p.projectId!==id);
+  state.blockers = state.blockers.filter(b=>!pkgIds.includes(b.packageId));
+  saveState(); closeModal(); renderView(currentView);
+}
+
+// ================================================================
+// PACKAGE MODAL
+// ================================================================
+function openPackageModal(id) {
+  const pkg = id ? state.packages.find(x=>x.id===id) : null;
+  showModal(`
+    <div class="modal-title">${pkg?'Edit Package':'Add Production Package'}</div>
+    <input type="hidden" id="pkg-id" value="${pkg?.id||''}">
+    <div class="form-group"><label>Package Name *</label><input type="text" id="pkg-name" value="${(pkg?.packageName||'').replace(/"/g,'&quot;')}" placeholder="Parianos Kitchen"></div>
+    <div class="form-group"><label>Parent Project *</label><select id="pkg-project"><option value="">Select project...</option>${state.projects.map(p=>`<option value="${p.id}" ${pkg?.projectId===p.id?'selected':''}>${p.projectName}</option>`).join('')}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>Install Priority</label><input type="number" id="pkg-ipri" value="${pkg?.installPriority||1}" min="1" max="99"></div>
+      <div class="form-group"><label>Production Priority</label><input type="number" id="pkg-ppri" value="${pkg?.productionPriority||1}" min="1" max="99"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Target Install Date</label><input type="date" id="pkg-date" value="${pkg?.targetInstallDate||''}"></div>
+      <div class="form-group"><label>Estimated Shop Weeks</label><input type="number" id="pkg-weeks" value="${pkg?.estimatedShopWeeks||1}" min="0.5" step="0.5"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Shop Stage</label><select id="pkg-stage">${SHOP_STAGES.map(s=>`<option value="${s}" ${pkg?.shopStage===s?'selected':''}>${s}</option>`).join('')}</select></div>
+      <div class="form-group"><label>Current Operation</label><select id="pkg-op">${OPERATIONS.map(o=>`<option value="${o}" ${pkg?.currentOperation===o?'selected':''}>${o||'— None —'}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Status Color</label><select id="pkg-status"><option value="green" ${pkg?.statusColor==='green'?'selected':''}>🟢 Green — On Track</option><option value="yellow" ${pkg?.statusColor==='yellow'?'selected':''}>🟡 Yellow — At Risk</option><option value="red" ${pkg?.statusColor==='red'?'selected':''}>🔴 Red — Blocked/Critical</option><option value="gray" ${(!pkg||pkg?.statusColor==='gray')?'selected':''}>⚪ Gray — Inactive/Waiting</option></select></div>
+      <div class="form-group"><label>Scheduled Week</label><select id="pkg-week"><option value="">Not scheduled</option>${nextWeeks(52).map(wk=>`<option value="${wk}" ${pkg?.scheduledWeek===wk?'selected':''}>${formatWeekLabel(wk)}</option>`).join('')}</select></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="pkg-notes" placeholder="Material holds, special instructions, dependencies...">${pkg?.notes||''}</textarea></div>
+    <div class="modal-footer">
+      ${pkg?`<button class="btn btn-danger btn-sm" onclick="deletePackage('${pkg.id}')">Delete</button><div style="flex:1"></div>`:''}
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePackage()">Save Package</button>
+    </div>
+  `);
+}
+
+function savePackage() {
+  const id = document.getElementById('pkg-id').value;
+  const name = document.getElementById('pkg-name').value.trim();
+  const projectId = document.getElementById('pkg-project').value;
+  if (!name) { alert('Package name is required.'); return; }
+  if (!projectId) { alert('Please select a project.'); return; }
+  const data = { packageName: name, projectId, installPriority: parseInt(document.getElementById('pkg-ipri').value)||1, productionPriority: parseInt(document.getElementById('pkg-ppri').value)||1, targetInstallDate: document.getElementById('pkg-date').value, estimatedShopWeeks: parseFloat(document.getElementById('pkg-weeks').value)||1, shopStage: document.getElementById('pkg-stage').value, currentOperation: document.getElementById('pkg-op').value, statusColor: document.getElementById('pkg-status').value, scheduledWeek: document.getElementById('pkg-week').value, notes: document.getElementById('pkg-notes').value.trim(), updatedAt: nowStr() };
+  if (id) { Object.assign(state.packages.find(p=>p.id===id), data); } else { state.packages.push({ id: genId(), createdAt: nowStr(), ...data }); }
+  saveState(); closeModal(); renderView(currentView);
+}
+
+function deletePackage(id) {
+  if (!confirm('Delete this package? Its blocker logs will also be removed.')) return;
+  state.packages = state.packages.filter(p=>p.id!==id);
+  state.blockers = state.blockers.filter(b=>b.packageId!==id);
+  saveState(); closeModal(); renderView(currentView);
+}
+
+// ================================================================
+// BLOCKER MODAL
+// ================================================================
+function openBlockerModal(packageId, blockerId) {
+  const b = blockerId ? state.blockers.find(x=>x.id===blockerId) : null;
+  const today = toLocalDateStr(new Date());
+  showModal(`
+    <div class="modal-title">${b?'Edit Blocker':'Log Blocker'}</div>
+    <input type="hidden" id="bl-id" value="${b?.id||''}">
+    <div class="form-group"><label>Package *</label><select id="bl-pkg"><option value="">Select package...</option>${state.packages.map(p=>{const proj=getProject(p.projectId);const sel=(packageId&&p.id===packageId)||(b&&p.id===b.packageId);return`<option value="${p.id}" data-proj="${p.projectId}" ${sel?'selected':''}>${p.packageName}${proj?' ('+proj.projectName+')':''}</option>`;}).join('')}</select></div>
+    <div class="form-group"><label>Blocker Type *</label><select id="bl-type">${BLOCKER_TYPES.map(t=>`<option value="${t}" ${b?.blockerType===t?'selected':''}>${t}</option>`).join('')}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label>Date Blocked *</label><input type="date" id="bl-start" value="${b?.dateBlocked||today}"></div>
+      <div class="form-group"><label>Date Unblocked</label><input type="date" id="bl-end" value="${b?.dateUnblocked||''}"></div>
+    </div>
+    <div class="form-group"><label>Notes</label><textarea id="bl-notes" placeholder="What specifically is blocked and why?">${b?.notes||''}</textarea></div>
+    <div class="modal-footer">
+      ${b?`<button class="btn btn-danger btn-sm" onclick="deleteBlocker('${b.id}')">Delete</button><div style="flex:1"></div>`:''}
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveBlocker()">Save Blocker</button>
+    </div>
+  `);
+}
+
+function saveBlocker() {
+  const id = document.getElementById('bl-id').value;
+  const pkgSel = document.getElementById('bl-pkg');
+  const pkgId = pkgSel.value;
+  if (!pkgId) { alert('Please select a package.'); return; }
+  const projId = pkgSel.options[pkgSel.selectedIndex]?.dataset?.proj || '';
+  const startDate = document.getElementById('bl-start').value;
+  const endDate = document.getElementById('bl-end').value;
+  const daysBlocked = (startDate && endDate) ? Math.max(0, Math.round((new Date(endDate+'T12:00:00') - new Date(startDate+'T12:00:00')) / 86400000)) : null;
+  const data = { packageId: pkgId, projectId: projId, blockerType: document.getElementById('bl-type').value, dateBlocked: startDate, dateUnblocked: endDate, daysBlocked, notes: document.getElementById('bl-notes').value.trim(), updatedAt: nowStr() };
+  if (id) { Object.assign(state.blockers.find(b=>b.id===id), data); } else {
+    state.blockers.push({ id: genId(), createdAt: nowStr(), ...data });
+    if (!endDate) { const pkg=getPackage(pkgId); if (pkg) { pkg.statusColor='red'; pkg.updatedAt=nowStr(); } }
+  }
+  saveState(); closeModal(); renderView(currentView);
+}
+
+function deleteBlocker(id) {
+  if (!confirm('Delete this blocker log entry?')) return;
+  state.blockers = state.blockers.filter(b=>b.id!==id);
+  saveState(); closeModal(); renderView(currentView);
+}
+</script>
+</body>
+</html>
