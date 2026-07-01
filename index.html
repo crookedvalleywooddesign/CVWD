@@ -219,6 +219,27 @@ textarea { resize: vertical; min-height: 65px; }
 .setup-sep { height: 1px; background: var(--border); margin: 22px 0; }
 .setup-error { font-size: 13px; color: var(--red); margin-top: 10px; font-weight: 600; display: none; }
 
+/* SCHEDULE / CALENDAR */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-header { text-align: center; padding: 7px 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); }
+.cal-day { background: var(--surface); border-radius: 6px; padding: 7px 8px; min-height: 100px; cursor: pointer; box-shadow: var(--shadow); border: 2px solid transparent; transition: border-color 0.12s; vertical-align: top; }
+.cal-day:hover { border-color: var(--accent); }
+.cal-day.today { border-color: var(--accent); }
+.cal-day.weekend { background: #f6f5f2; }
+.cal-day.other-month { background: #edecea; box-shadow: none; cursor: default; min-height: 100px; }
+.cal-date { font-size: 12px; font-weight: 800; color: var(--text-muted); margin-bottom: 5px; }
+.cal-date.today-date { color: var(--accent); }
+.cal-emp-chip { font-size: 9px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; line-height: 1.4; }
+.cal-master-event { font-size: 9px; padding: 2px 5px; border-radius: 3px; margin-bottom: 2px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid; line-height: 1.4; }
+.sched-tabs { display: flex; background: var(--border); border-radius: 8px; padding: 3px; gap: 3px; }
+.sched-tab { padding: 6px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; background: transparent; color: var(--text-muted); transition: all 0.15s; }
+.sched-tab.active { background: var(--nav-bg); color: white; }
+.month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.month-title { font-size: 18px; font-weight: 800; }
+.emp-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; padding: 9px 12px; border-radius: 8px; }
+.emp-label { min-width: 76px; font-size: 13px; font-weight: 700; }
+.emp-inputs { flex: 1; display: flex; gap: 6px; }
+
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .main { padding: 14px; }
@@ -285,6 +306,7 @@ textarea { resize: vertical; min-height: 65px; }
   <button class="nav-link" onclick="showView('shop')">Shop Board</button>
   <button class="nav-link" onclick="showView('blockers')">Blockers</button>
   <button class="nav-link" onclick="showView('capacity')">Capacity</button>
+  <button class="nav-link" onclick="showView('schedule')">Schedule</button>
   <div class="nav-right">
     <span class="sync-dot sync-saving" id="sync-dot" title="Connecting..."></span>
     <span class="sync-label" id="sync-label">connecting</span>
@@ -298,6 +320,7 @@ textarea { resize: vertical; min-height: 65px; }
   <div id="view-shop" class="view"></div>
   <div id="view-blockers" class="view"></div>
   <div id="view-capacity" class="view"></div>
+  <div id="view-schedule" class="view"></div>
 </div>
 
 <div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
@@ -328,11 +351,21 @@ const BLOCKER_TYPES = [
   'Waiting on Finish','Waiting on Install','Waiting on Dan','Rework','Other'
 ];
 const RISK_LEVELS = ['Low','Medium','High','Critical'];
+const EMPLOYEES = ['Dan','Josh','Rebecca','Marshall','Matthew','Mike'];
+const EMP_COLORS = {
+  Dan:      { bg: '#dbeafe', border: '#2563eb', text: '#1d4ed8' },
+  Josh:     { bg: '#dcfce7', border: '#16a34a', text: '#15803d' },
+  Rebecca:  { bg: '#f3e8ff', border: '#9333ea', text: '#7e22ce' },
+  Marshall: { bg: '#ffedd5', border: '#ea580c', text: '#c2410c' },
+  Matthew:  { bg: '#ccfbf1', border: '#0d9488', text: '#0f766e' },
+  Mike:     { bg: '#fee2e2', border: '#dc2626', text: '#b91c1c' }
+};
+const PROJ_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#84cc16','#f97316'];
 
 // ================================================================
 // STATE
 // ================================================================
-let state = { projects: [], packages: [], blockers: [], weekNotes: {}, shopCapacity: 3 };
+let state = { projects: [], packages: [], blockers: [], weekNotes: {}, shopCapacity: 3, schedule: {} };
 let currentView = 'dashboard';
 let capacityOffset = 0;
 let dragPkgId = null;
@@ -444,6 +477,7 @@ function subscribeRealtime() {
         state = payload.new.state;
         if (!state.weekNotes) state.weekNotes = {};
         if (!state.shopCapacity) state.shopCapacity = 3;
+        if (!state.schedule) state.schedule = {};
         renderView(currentView);
         setSyncStatus('ok');
       }
@@ -464,6 +498,7 @@ async function initApp() {
       state = dbState;
       if (!state.weekNotes) state.weekNotes = {};
       if (!state.shopCapacity) state.shopCapacity = 3;
+      if (!state.schedule) state.schedule = {};
     } else {
       // First-ever load — seed sample data
       initSampleData();
@@ -677,7 +712,7 @@ function showView(v) {
 }
 
 function renderView(v) {
-  const fns = { dashboard: renderDashboard, office: renderOffice, shop: renderShop, blockers: renderBlockers, capacity: renderCapacity };
+  const fns = { dashboard: renderDashboard, office: renderOffice, shop: renderShop, blockers: renderBlockers, capacity: renderCapacity, schedule: renderSchedule };
   if (fns[v]) fns[v]();
 }
 
@@ -1192,6 +1227,268 @@ function deleteBlocker(id) {
   if (!confirm('Delete this blocker log entry?')) return;
   state.blockers = state.blockers.filter(b=>b.id!==id);
   saveState(); closeModal(); renderView(currentView);
+}
+
+// ================================================================
+// SCHEDULE
+// ================================================================
+let scheduleMonth = new Date().getMonth();
+let scheduleYear  = new Date().getFullYear();
+let scheduleTab   = 'team';
+
+function projColorMap() {
+  const map = {};
+  state.projects.forEach((p, i) => { map[p.id] = PROJ_COLORS[i % PROJ_COLORS.length]; });
+  return map;
+}
+
+function buildMonthDays(year, month) {
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+  const days = [];
+  for (let i = 0; i < startOffset; i++) days.push(null);
+  for (let i = 1; i <= daysInMonth; i++) days.push(i);
+  while (days.length % 7 !== 0) days.push(null);
+  return days;
+}
+
+function prevMonth() {
+  scheduleMonth--;
+  if (scheduleMonth < 0) { scheduleMonth = 11; scheduleYear--; }
+  renderSchedule();
+}
+function nextMonth() {
+  scheduleMonth++;
+  if (scheduleMonth > 11) { scheduleMonth = 0; scheduleYear++; }
+  renderSchedule();
+}
+
+function renderSchedule() {
+  const el = document.getElementById('view-schedule');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Schedule</div>
+        <div class="page-subtitle">Team daily assignments and master project calendar</div>
+      </div>
+      <div class="sched-tabs">
+        <button class="sched-tab ${scheduleTab==='team'?'active':''}" onclick="setScheduleTab('team')">Team Schedule</button>
+        <button class="sched-tab ${scheduleTab==='master'?'active':''}" onclick="setScheduleTab('master')">Master Schedule</button>
+      </div>
+    </div>
+    ${scheduleTab === 'team' ? renderTeamCalendar() : renderMasterCalendar()}
+  `;
+}
+
+function setScheduleTab(tab) { scheduleTab = tab; renderSchedule(); }
+
+function renderTeamCalendar() {
+  const monthName = new Date(scheduleYear, scheduleMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const days = buildMonthDays(scheduleYear, scheduleMonth);
+  const today = toLocalDateStr(new Date());
+  const sched = state.schedule || {};
+
+  return `
+    <div class="month-nav">
+      <button class="btn btn-secondary" onclick="prevMonth()">◀ Prev</button>
+      <div class="month-title">${monthName}</div>
+      <button class="btn btn-secondary" onclick="nextMonth()">Next ▶</button>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow)">
+      ${EMPLOYEES.map(e => `
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">
+          <span style="width:12px;height:12px;border-radius:3px;background:${EMP_COLORS[e].bg};border:2px solid ${EMP_COLORS[e].border};display:inline-block;flex-shrink:0"></span>
+          ${e}
+        </div>`).join('')}
+    </div>
+
+    <div class="cal-grid">
+      ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="cal-header">${d}</div>`).join('')}
+      ${days.map(day => {
+        if (!day) return `<div class="cal-day other-month"></div>`;
+        const dateStr = toLocalDateStr(new Date(scheduleYear, scheduleMonth, day));
+        const assignments = sched[dateStr] || {};
+        const dow = new Date(scheduleYear, scheduleMonth, day).getDay();
+        const isWeekend = dow === 0 || dow === 6;
+        const isToday = dateStr === today;
+        const assigned = EMPLOYEES.filter(e => assignments[e]?.task);
+        return `
+          <div class="cal-day${isToday?' today':''}${isWeekend?' weekend':''}" onclick="openDayModal('${dateStr}')">
+            <div class="cal-date${isToday?' today-date':''}">${day}</div>
+            ${assigned.map(e => `
+              <div class="cal-emp-chip" style="background:${EMP_COLORS[e].bg};color:${EMP_COLORS[e].text};border-left:2px solid ${EMP_COLORS[e].border}" title="${e}: ${assignments[e].task}">
+                <strong>${e.slice(0,4)}:</strong> ${assignments[e].task}
+              </div>`).join('')}
+            ${assigned.length === 0 && !isWeekend ? `<div style="font-size:9px;color:var(--border);margin-top:4px">click to assign</div>` : ''}
+          </div>`;
+      }).join('')}
+    </div>
+  `;
+}
+
+function openDayModal(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const assignments = (state.schedule || {})[dateStr] || {};
+
+  showModal(`
+    <div class="modal-title">${label}</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Type any task, or pick a production package from the dropdown to auto-fill.</div>
+    ${EMPLOYEES.map(emp => {
+      const cur = assignments[emp] || {};
+      return `
+        <div class="emp-row" style="background:${EMP_COLORS[emp].bg};border-left:3px solid ${EMP_COLORS[emp].border}">
+          <div class="emp-label" style="color:${EMP_COLORS[emp].text}">${emp}</div>
+          <div class="emp-inputs">
+            <input type="text" id="emp-${emp}" value="${(cur.task||'').replace(/"/g,'&quot;')}" placeholder="Task..." style="flex:1;font-size:12px">
+            <select id="pkg-${emp}" onchange="autofillEmpTask('${emp}')" style="width:140px;font-size:11px">
+              <option value="">Link package...</option>
+              ${state.packages.filter(p=>p.shopStage!=='Installed').map(p=>`<option value="${p.id}" ${cur.packageId===p.id?'selected':''}>${p.packageName}</option>`).join('')}
+            </select>
+          </div>
+        </div>`;
+    }).join('')}
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" onclick="clearDay('${dateStr}')">Clear Day</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDay('${dateStr}')">Save</button>
+    </div>
+  `);
+}
+
+function autofillEmpTask(emp) {
+  const sel = document.getElementById(`pkg-${emp}`);
+  const input = document.getElementById(`emp-${emp}`);
+  if (sel && sel.value && input) {
+    const pkg = getPackage(sel.value);
+    if (pkg) input.value = pkg.packageName;
+  }
+}
+
+function saveDay(dateStr) {
+  if (!state.schedule) state.schedule = {};
+  const assignments = {};
+  EMPLOYEES.forEach(emp => {
+    const task = (document.getElementById(`emp-${emp}`)?.value || '').trim();
+    const packageId = document.getElementById(`pkg-${emp}`)?.value || '';
+    if (task) assignments[emp] = { task, packageId };
+  });
+  if (Object.keys(assignments).length === 0) {
+    delete state.schedule[dateStr];
+  } else {
+    state.schedule[dateStr] = assignments;
+  }
+  saveState();
+  closeModal();
+  renderSchedule();
+}
+
+function clearDay(dateStr) {
+  if (!confirm('Clear all assignments for this day?')) return;
+  if (state.schedule) delete state.schedule[dateStr];
+  saveState();
+  closeModal();
+  renderSchedule();
+}
+
+function renderMasterCalendar() {
+  const monthName = new Date(scheduleYear, scheduleMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const days = buildMonthDays(scheduleYear, scheduleMonth);
+  const today = toLocalDateStr(new Date());
+  const colorMap = projColorMap();
+
+  // Build install date markers
+  const markers = {};
+  const addMarker = (dateStr, label, color, icon) => {
+    if (!dateStr) return;
+    if (!markers[dateStr]) markers[dateStr] = [];
+    markers[dateStr].push({ label, color, icon });
+  };
+  state.projects.forEach(p => addMarker(p.promisedInstallDate, p.projectName, colorMap[p.id], '📅'));
+  state.packages.forEach(p => addMarker(p.targetInstallDate, p.packageName, colorMap[p.projectId], '📦'));
+
+  // Upcoming milestones list
+  const milestones = [];
+  state.projects.forEach(p => {
+    if (p.promisedInstallDate) milestones.push({ date: p.promisedInstallDate, name: p.projectName, sub: 'Project install date', stage: p.officeStage, color: colorMap[p.id] });
+  });
+  state.packages.forEach(p => {
+    if (p.targetInstallDate) {
+      const proj = getProject(p.projectId);
+      milestones.push({ date: p.targetInstallDate, name: p.packageName, sub: proj?.projectName||'', stage: p.shopStage, color: colorMap[p.projectId] });
+    }
+  });
+  milestones.sort((a,b) => new Date(a.date) - new Date(b.date));
+
+  return `
+    <div class="month-nav">
+      <button class="btn btn-secondary" onclick="prevMonth()">◀ Prev</button>
+      <div class="month-title">${monthName}</div>
+      <button class="btn btn-secondary" onclick="nextMonth()">Next ▶</button>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow)">
+      ${state.projects.map(p => `
+        <div style="display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700">
+          <span style="width:12px;height:12px;border-radius:3px;background:${colorMap[p.id]};display:inline-block;flex-shrink:0"></span>
+          ${p.projectName}
+        </div>`).join('')}
+    </div>
+
+    <div class="cal-grid">
+      ${['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => `<div class="cal-header">${d}</div>`).join('')}
+      ${days.map(day => {
+        if (!day) return `<div class="cal-day other-month"></div>`;
+        const dateStr = toLocalDateStr(new Date(scheduleYear, scheduleMonth, day));
+        const events = markers[dateStr] || [];
+        const dow = new Date(scheduleYear, scheduleMonth, day).getDay();
+        const isWeekend = dow === 0 || dow === 6;
+        const isToday = dateStr === today;
+        return `
+          <div class="cal-day${isToday?' today':''}${isWeekend?' weekend':''}" style="cursor:default">
+            <div class="cal-date${isToday?' today-date':''}">${day}</div>
+            ${events.map(ev => `
+              <div class="cal-master-event" style="background:${ev.color}18;color:${ev.color};border-color:${ev.color}" title="${ev.label}">
+                ${ev.icon} ${ev.label}
+              </div>`).join('')}
+          </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section-header"><div class="section-title">All Upcoming Install Dates</div></div>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Days Out</th><th>Project / Package</th><th>Stage</th></tr></thead>
+      <tbody>
+        ${milestones.length === 0
+          ? `<tr><td colspan="4"><div class="empty"><div class="empty-text">No install dates set yet</div><div class="empty-sub">Set install dates on your projects and packages</div></div></td></tr>`
+          : milestones.map(m => {
+              const d = daysUntil(m.date);
+              const dStr = d === null ? '—'
+                : d < 0  ? `<span style="color:var(--red);font-weight:700">${Math.abs(d)}d overdue</span>`
+                : d === 0 ? `<span style="color:var(--red);font-weight:700">Today</span>`
+                : d <= 14 ? `<span style="color:var(--red);font-weight:700">${d}d</span>`
+                : `${d}d`;
+              return `<tr>
+                <td style="font-weight:700">${fmt(m.date,'date')}</td>
+                <td>${dStr}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <span style="width:10px;height:10px;border-radius:50%;background:${m.color};flex-shrink:0"></span>
+                    <div><div style="font-weight:700;font-size:13px">${m.name}</div><div style="font-size:11px;color:var(--text-muted)">${m.sub}</div></div>
+                  </div>
+                </td>
+                <td><span class="badge badge-gray" style="font-size:10px">${m.stage}</span></td>
+              </tr>`;
+            }).join('')}
+      </tbody>
+    </table>
+    </div>
+  `;
 }
 </script>
 </body>
