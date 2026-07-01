@@ -365,7 +365,7 @@ const PROJ_COLORS = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4'
 // ================================================================
 // STATE
 // ================================================================
-let state = { projects: [], packages: [], blockers: [], weekNotes: {}, shopCapacity: 3, schedule: {} };
+let state = { projects: [], packages: [], blockers: [], weekNotes: {}, shopCapacity: 3, schedule: {}, taskCategories: [] };
 let currentView = 'dashboard';
 let capacityOffset = 0;
 let dragPkgId = null;
@@ -478,6 +478,7 @@ function subscribeRealtime() {
         if (!state.weekNotes) state.weekNotes = {};
         if (!state.shopCapacity) state.shopCapacity = 3;
         if (!state.schedule) state.schedule = {};
+        if (!state.taskCategories) state.taskCategories = defaultTaskCategories();
         renderView(currentView);
         setSyncStatus('ok');
       }
@@ -499,6 +500,7 @@ async function initApp() {
       if (!state.weekNotes) state.weekNotes = {};
       if (!state.shopCapacity) state.shopCapacity = 3;
       if (!state.schedule) state.schedule = {};
+      if (!state.taskCategories) state.taskCategories = defaultTaskCategories();
     } else {
       // First-ever load — seed sample data
       initSampleData();
@@ -696,6 +698,38 @@ function initSampleData() {
   ];
   state.weekNotes = {};
   state.shopCapacity = 3;
+  state.taskCategories = defaultTaskCategories();
+}
+
+function defaultTaskCategories() {
+  return [
+    {
+      id: genId(),
+      name: 'Cabinetry',
+      tasks: [
+        'Milling — Doors & Faceframes',
+        'Assembly — Doors',
+        'CNC — Boxes / Specialty Parts',
+        'Box Assembly',
+        'Finish Prep — Doors & Faceframes',
+        'Finish',
+        'Final Assembly'
+      ]
+    },
+    {
+      id: genId(),
+      name: 'General',
+      tasks: [
+        'Install',
+        'Delivery',
+        'Material Run',
+        'Shop Maintenance',
+        'Office',
+        'Design Review',
+        'Customer Meeting'
+      ]
+    }
+  ];
 }
 
 // ================================================================
@@ -1273,9 +1307,12 @@ function renderSchedule() {
         <div class="page-title">Schedule</div>
         <div class="page-subtitle">Team daily assignments and master project calendar</div>
       </div>
-      <div class="sched-tabs">
-        <button class="sched-tab ${scheduleTab==='team'?'active':''}" onclick="setScheduleTab('team')">Team Schedule</button>
-        <button class="sched-tab ${scheduleTab==='master'?'active':''}" onclick="setScheduleTab('master')">Master Schedule</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-secondary" onclick="openManageTasks()">⚙ Manage Tasks</button>
+        <div class="sched-tabs">
+          <button class="sched-tab ${scheduleTab==='team'?'active':''}" onclick="setScheduleTab('team')">Team Schedule</button>
+          <button class="sched-tab ${scheduleTab==='master'?'active':''}" onclick="setScheduleTab('master')">Master Schedule</button>
+        </div>
       </div>
     </div>
     ${scheduleTab === 'team' ? renderTeamCalendar() : renderMasterCalendar()}
@@ -1329,6 +1366,16 @@ function renderTeamCalendar() {
   `;
 }
 
+function buildTaskOptions() {
+  const cats = state.taskCategories || [];
+  if (cats.length === 0) return '<option value="">No tasks yet — add via Manage Tasks</option>';
+  return cats.map(cat =>
+    `<optgroup label="${cat.name}">
+      ${cat.tasks.map(t => `<option value="${t}">${t}</option>`).join('')}
+    </optgroup>`
+  ).join('') + '<optgroup label="─────────"><option value="__pkg__">Link to production package...</option></optgroup>';
+}
+
 function openDayModal(dateStr) {
   const d = new Date(dateStr + 'T12:00:00');
   const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -1336,15 +1383,23 @@ function openDayModal(dateStr) {
 
   showModal(`
     <div class="modal-title">${label}</div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Type any task, or pick a production package from the dropdown to auto-fill.</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">
+      Pick from the task list <strong>or</strong> type anything custom in the text field.
+    </div>
     ${EMPLOYEES.map(emp => {
       const cur = assignments[emp] || {};
       return `
-        <div class="emp-row" style="background:${EMP_COLORS[emp].bg};border-left:3px solid ${EMP_COLORS[emp].border}">
-          <div class="emp-label" style="color:${EMP_COLORS[emp].text}">${emp}</div>
-          <div class="emp-inputs">
-            <input type="text" id="emp-${emp}" value="${(cur.task||'').replace(/"/g,'&quot;')}" placeholder="Task..." style="flex:1;font-size:12px">
-            <select id="pkg-${emp}" onchange="autofillEmpTask('${emp}')" style="width:140px;font-size:11px">
+        <div style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 10px 6px;background:${EMP_COLORS[emp].bg};border-radius:8px 8px 0 0;border-left:3px solid ${EMP_COLORS[emp].border}">
+            <div style="min-width:76px;font-size:13px;font-weight:800;color:${EMP_COLORS[emp].text}">${emp}</div>
+            <select onchange="pickTask('${emp}',this)" style="flex:1;font-size:12px;padding:5px 8px">
+              <option value="">— Pick a task —</option>
+              ${buildTaskOptions()}
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;padding:6px 10px 8px;background:${EMP_COLORS[emp].bg}99;border-radius:0 0 8px 8px;border-left:3px solid ${EMP_COLORS[emp].border}">
+            <input type="text" id="emp-${emp}" value="${(cur.task||'').replace(/"/g,'&quot;')}" placeholder="Custom task or override..." style="flex:1;font-size:12px">
+            <select id="pkg-${emp}" onchange="autofillEmpTask('${emp}')" style="width:140px;font-size:11px;display:${cur.packageId?'block':'none'}" >
               <option value="">Link package...</option>
               ${state.packages.filter(p=>p.shopStage!=='Installed').map(p=>`<option value="${p.id}" ${cur.packageId===p.id?'selected':''}>${p.packageName}</option>`).join('')}
             </select>
@@ -1358,6 +1413,21 @@ function openDayModal(dateStr) {
       <button class="btn btn-primary" onclick="saveDay('${dateStr}')">Save</button>
     </div>
   `);
+}
+
+function pickTask(emp, sel) {
+  const val = sel.value;
+  if (!val) return;
+  if (val === '__pkg__') {
+    // Show package selector
+    const pkgSel = document.getElementById(`pkg-${emp}`);
+    if (pkgSel) pkgSel.style.display = 'block';
+    sel.value = '';
+    return;
+  }
+  const input = document.getElementById(`emp-${emp}`);
+  if (input) input.value = val;
+  sel.value = '';
 }
 
 function autofillEmpTask(emp) {
@@ -1393,6 +1463,96 @@ function clearDay(dateStr) {
   saveState();
   closeModal();
   renderSchedule();
+}
+
+// ================================================================
+// MANAGE TASKS
+// ================================================================
+function openManageTasks() {
+  showModal(buildManageTasksHTML());
+}
+
+function buildManageTasksHTML() {
+  const cats = state.taskCategories || [];
+  return `
+    <div class="modal-title">Manage Task List</div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Add categories (Cabinetry, Stairs, etc.) and the tasks within each one. These appear in the dropdown when scheduling.</div>
+
+    <div id="task-cat-list">
+      ${cats.map((cat, ci) => `
+        <div style="margin-bottom:16px;border:1px solid var(--border);border-radius:8px;overflow:hidden">
+          <div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#fafaf9;border-bottom:1px solid var(--border)">
+            <input type="text" value="${cat.name.replace(/"/g,'&quot;')}" onchange="renameCat('${cat.id}',this.value)" style="flex:1;font-weight:700;font-size:13px">
+            <button class="btn btn-danger btn-sm" onclick="deleteCat('${cat.id}')">Delete Category</button>
+          </div>
+          <div style="padding:10px 12px">
+            ${cat.tasks.map((task, ti) => `
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <input type="text" value="${task.replace(/"/g,'&quot;')}" onchange="renameTask('${cat.id}',${ti},this.value)" style="flex:1;font-size:13px">
+                <button class="btn btn-secondary btn-sm" onclick="deleteTask('${cat.id}',${ti})" style="color:var(--red);border-color:#fca5a5;flex-shrink:0">✕</button>
+              </div>`).join('')}
+            <div style="display:flex;gap:6px;margin-top:8px">
+              <input type="text" id="new-task-${cat.id}" placeholder="New task name..." style="flex:1;font-size:13px">
+              <button class="btn btn-primary btn-sm" onclick="addTask('${cat.id}')">+ Add Task</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:4px;padding:12px;background:#fafaf9;border-radius:8px;border:1px dashed var(--border)">
+      <input type="text" id="new-cat-name" placeholder="New category name (e.g. Stairs)..." style="flex:1;font-size:13px">
+      <button class="btn btn-primary" onclick="addCategory()">+ Add Category</button>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="closeModal()">Done</button>
+    </div>
+  `;
+}
+
+function renameCat(catId, name) {
+  const cat = state.taskCategories.find(c => c.id === catId);
+  if (cat) { cat.name = name; saveState(); }
+}
+
+function deleteCat(catId) {
+  if (!confirm('Delete this entire category and all its tasks?')) return;
+  state.taskCategories = state.taskCategories.filter(c => c.id !== catId);
+  saveState();
+  showModal(buildManageTasksHTML());
+}
+
+function renameTask(catId, taskIndex, name) {
+  const cat = state.taskCategories.find(c => c.id === catId);
+  if (cat) { cat.tasks[taskIndex] = name; saveState(); }
+}
+
+function deleteTask(catId, taskIndex) {
+  const cat = state.taskCategories.find(c => c.id === catId);
+  if (!cat) return;
+  cat.tasks.splice(taskIndex, 1);
+  saveState();
+  showModal(buildManageTasksHTML());
+}
+
+function addTask(catId) {
+  const input = document.getElementById(`new-task-${catId}`);
+  if (!input || !input.value.trim()) return;
+  const cat = state.taskCategories.find(c => c.id === catId);
+  if (!cat) return;
+  cat.tasks.push(input.value.trim());
+  saveState();
+  showModal(buildManageTasksHTML());
+}
+
+function addCategory() {
+  const input = document.getElementById('new-cat-name');
+  if (!input || !input.value.trim()) return;
+  if (!state.taskCategories) state.taskCategories = [];
+  state.taskCategories.push({ id: genId(), name: input.value.trim(), tasks: [] });
+  saveState();
+  showModal(buildManageTasksHTML());
 }
 
 function renderMasterCalendar() {
